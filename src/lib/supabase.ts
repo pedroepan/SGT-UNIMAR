@@ -7,7 +7,7 @@
  * 3. Import from `src/lib/supabase` and use `supabase`:
  *
  *    import { supabase } from '@/lib/supabase'
- *    const { data, error } = await supabase.from('tournaments').select('*')
+ *    const { data, error } = await supabase.from('torneos').select('*')
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'

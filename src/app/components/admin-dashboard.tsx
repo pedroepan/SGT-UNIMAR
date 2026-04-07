@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { useTournament } from "../context/tournament-context";
 import { CreateTournamentDialog } from "./create-tournament-dialog";
+import { TeamDetailsDialog } from "./team-details-dialog";
 import { TournamentDetailsDialog } from "./tournament-details-dialog";
 import type { Tournament } from "../context/tournament-context";
+import type { TeamRegistration } from "../context/tournament-context";
 import { toast } from "sonner";
 
 export function AdminDashboard() {
@@ -29,8 +31,13 @@ export function AdminDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [tournamentDialogMode, setTournamentDialogMode] = useState<"view" | "manage">("view");
+  const [selectedTeam, setSelectedTeam] = useState<TeamRegistration | null>(null);
+  const [teamDetailsDialogOpen, setTeamDetailsDialogOpen] = useState(false);
+  const [teamDialogMode, setTeamDialogMode] = useState<"view" | "manage">("view");
 
   const pendingRegistrations = getPendingTeams();
+  const enrolledTeams = approvedTeams;
   
   const stats = [
     { label: "Torneos Activos", value: tournaments.filter(t => t.status === "active").length, icon: Trophy, color: "text-primary" },
@@ -41,24 +48,53 @@ export function AdminDashboard() {
 
   const handleViewDetails = (tournament: Tournament) => {
     setSelectedTournament(tournament);
+    setTournamentDialogMode("view");
     setDetailsDialogOpen(true);
   };
 
-  const handleApprove = (teamId: string) => {
-    const team = pendingRegistrations.find(t => t.id === teamId);
-    approveTeam(teamId);
-    toast.success("Equipo aprobado", {
-      description: `El equipo "${team?.teamName}" ha sido aprobado. Ahora puedes agregarlo a un torneo.`,
-    });
+  const handleManageTournament = (tournament: Tournament) => {
+    setSelectedTournament(tournament);
+    setTournamentDialogMode("manage");
+    setDetailsDialogOpen(true);
   };
 
-  const handleReject = (teamId: string) => {
+  const handleViewTeamDetails = (team: TeamRegistration) => {
+    setSelectedTeam(team);
+    setTeamDialogMode("view");
+    setTeamDetailsDialogOpen(true);
+  };
+
+  const handleManageTeam = (team: TeamRegistration) => {
+    setSelectedTeam(team);
+    setTeamDialogMode("manage");
+    setTeamDetailsDialogOpen(true);
+  };
+
+  const handleApprove = async (teamId: string) => {
+    const team = pendingRegistrations.find(t => t.id === teamId);
+    try {
+      await approveTeam(teamId);
+      toast.success("Equipo aprobado", {
+        description: `El equipo "${team?.teamName}" ha sido aprobado. Ahora puedes agregarlo a un torneo.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo aprobar el equipo";
+      toast.error("Error al aprobar", { description: message });
+    }
+  };
+
+  const handleReject = async (teamId: string) => {
     const team = pendingRegistrations.find(t => t.id === teamId);
     if (confirm(`¿Estás seguro de que deseas rechazar la inscripción del equipo "${team?.teamName}"? Esta acción no se puede deshacer.`)) {
-      rejectTeam(teamId);
-      toast.error("Inscripción rechazada", {
-        description: `La inscripción del equipo "${team?.teamName}" ha sido eliminada.`,
-      });
+      try {
+        await rejectTeam(teamId);
+        toast.error("Inscripción rechazada", {
+          description: `La inscripción del equipo "${team?.teamName}" ha sido eliminada.`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "No se pudo rechazar el equipo";
+        toast.error("Error al rechazar", { description: message });
+      }
     }
   };
 
@@ -149,7 +185,7 @@ export function AdminDashboard() {
                     variant="outline" 
                     size="sm" 
                     className="flex-1"
-                    onClick={() => handleViewDetails(tournament)}
+                    onClick={() => handleManageTournament(tournament)}
                   >
                     Gestionar
                   </Button>
@@ -158,6 +194,77 @@ export function AdminDashboard() {
             </Card>
           ))}
         </div>
+      </div>
+
+      {/* Enrolled Teams Grid */}
+      <div>
+        <h2 className="text-xl mb-4">Equipos Ya Inscritos</h2>
+        {enrolledTeams.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              No hay equipos inscritos aún
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {enrolledTeams.map((team) => {
+              const tournamentName = tournaments.find((tournament) => tournament.teams.includes(team.id))?.name ?? team.tournamentId ?? "Sin torneo";
+
+              return (
+                <Card key={team.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
+                          <Users className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{team.teamName}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{team.sport}</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-secondary">Inscrito</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>{team.players.length} jugadores</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>Torneo: {tournamentName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>Capitán: {team.captainName}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewTeamDetails(team)}
+                      >
+                        Ver detalles
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleManageTeam(team)}
+                      >
+                        Gestionar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Pending Registrations */}
@@ -231,6 +338,13 @@ export function AdminDashboard() {
         tournament={selectedTournament}
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
+        mode={tournamentDialogMode}
+      />
+      <TeamDetailsDialog
+        team={selectedTeam}
+        open={teamDetailsDialogOpen}
+        onOpenChange={setTeamDetailsDialogOpen}
+        mode={teamDialogMode}
       />
     </div>
   );

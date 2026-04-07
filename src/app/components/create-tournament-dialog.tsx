@@ -19,26 +19,30 @@ export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentD
   const [sport, setSport] = useState("");
   const [startDate, setStartDate] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !sport || !startDate) return;
 
-    addTournament({
-      name,
-      sport,
-      startDate,
-      status: "upcoming",
-    });
+    try {
+      await addTournament({
+        name,
+        sport,
+        startDate,
+        status: "upcoming",
+      });
 
-    toast.success("Torneo creado exitosamente", {
-      description: `El torneo "${name}" de ${sport} ha sido creado.`,
-    });
+      toast.success("Torneo creado exitosamente", {
+        description: `El torneo "${name}" de ${sport} ha sido creado.`,
+      });
 
-    // Reset form
-    setName("");
-    setSport("");
-    setStartDate("");
-    onOpenChange(false);
+      setName("");
+      setSport("");
+      setStartDate("");
+      onOpenChange(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear el torneo";
+      toast.error("Error al crear torneo", { description: message });
+    }
   };
 
   return (

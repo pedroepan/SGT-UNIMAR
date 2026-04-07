@@ -13,9 +13,12 @@ import { Trophy, Calendar, Clock, Edit } from "lucide-react";
 import { useTournament } from "../context/tournament-context";
 import { MatchResultDialog } from "./match-result-dialog";
 import type { Match } from "../context/tournament-context";
+import { useAuth } from "../context/auth-context";
 
 export function Fixture() {
   const { tournaments, matches, getTournamentMatches, getTournamentStandings } = useTournament();
+  const { user } = useAuth();
+  const isAdmin = user?.rol === "administrador";
   const [selectedTournament, setSelectedTournament] = useState<string>("all");
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
@@ -37,6 +40,7 @@ export function Fixture() {
   const completedMatches = sortedMatches.filter(m => m.status === "completed");
 
   const handleEditResult = (match: Match) => {
+    if (!isAdmin) return;
     setSelectedMatch(match);
     setResultDialogOpen(true);
   };
@@ -210,15 +214,17 @@ export function Fixture() {
                           {match.time}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                        onClick={() => handleEditResult(match)}
-                      >
-                        <Edit className="h-4 w-4" />
-                        Registrar Resultado
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => handleEditResult(match)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          Registrar Resultado
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -297,15 +303,17 @@ export function Fixture() {
                           {match.time}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-2"
-                        onClick={() => handleEditResult(match)}
-                      >
-                        <Edit className="h-4 w-4" />
-                        Editar
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-2"
+                          onClick={() => handleEditResult(match)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>

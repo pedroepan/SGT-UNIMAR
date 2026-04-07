@@ -196,11 +196,11 @@ El proyecto incluye documentación completa del esquema de base de datos en [`da
 
 ### Entidades Principales
 
-- **tournaments** - Torneos deportivos
-- **team_registrations** - Solicitudes de equipos
-- **players** - Jugadores de cada equipo
-- **tournament_teams** - Relación equipos-torneos
-- **matches** - Partidos/fixtures
+- **usuarios** - Usuarios del sistema (estudiantes/capitanes/admin)
+- **torneos** - Torneos deportivos
+- **equipo** - Equipos participantes en torneos
+- **jugadores** - Relación entre usuarios y equipos
+- **fixture** - Partidos/fixtures y resultados
 
 ### Implementación con Supabase (Opcional)
 

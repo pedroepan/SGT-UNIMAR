@@ -20,7 +20,7 @@ export function MatchResultDialog({ match, open, onOpenChange }: MatchResultDial
 
   if (!match) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const score1 = parseInt(team1Score);
@@ -33,15 +33,20 @@ export function MatchResultDialog({ match, open, onOpenChange }: MatchResultDial
       return;
     }
 
-    updateMatchResult(match.id, score1, score2);
-    
-    toast.success("Resultado registrado", {
-      description: `${match.team1Name} ${score1} - ${score2} ${match.team2Name}`,
-    });
+    try {
+      await updateMatchResult(match.id, score1, score2);
 
-    setTeam1Score("");
-    setTeam2Score("");
-    onOpenChange(false);
+      toast.success("Resultado registrado", {
+        description: `${match.team1Name} ${score1} - ${score2} ${match.team2Name}`,
+      });
+
+      setTeam1Score("");
+      setTeam2Score("");
+      onOpenChange(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar el resultado";
+      toast.error("Error", { description: message });
+    }
   };
 
   return (

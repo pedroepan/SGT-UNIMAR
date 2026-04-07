@@ -1,20 +1,24 @@
-Verificando conexión a Supabase remota...
+Verificando conexion a Supabase remota...
 
-¡Conexión OK! Se encontraron 1 equipos en la base de datos original.
+Conexion OK. Se encontraron 16 equipos en la base de datos.
 
-✅ El equipo 'chamos fc s' está correctamente registrado en la base de datos.
-Nombre del equipo: chamos fc s
-Nombre del Capitán: Juan Perez
-Cédula del Capitán: V-11223344
-Estado de aprobación: approved
-
-Verificando jugadores de chamos fc s...
+Equipo revisado: Relampagos FS
 Cantidad de jugadores guardados: 7
-✅ ¡Los 7 jugadores fueron insertados correctamente en la tabla 'players'!
-   Jugador 1: Pedro Rodriguez (CI: V-22222222)
-   Jugador 2: Maria Garcia (CI: V-33333333)
-   Jugador 3: Luis Hernandez (CI: V-44444444)
-   Jugador 4: Ana Martinez (CI: V-55555555)
-   Jugador 5: Jose Lopez (CI: V-66666666)
-   Jugador 6: Elena Diaz (CI: V-77777777)
-   Jugador 7: Miguel Sanchez (CI: V-88888888)
+Jugadores encontrados en usuarios:
+   Jugador 1: Andres Ruiz (CI: V-90000001)
+   Jugador 2: Jugador 2 de Relampagos FS (CI: V-22000001)
+   Jugador 3: Jugador 3 de Relampagos FS (CI: V-33000001)
+   Jugador 4: Jugador 4 de Relampagos FS (CI: V-44000001)
+   Jugador 5: Jugador 5 de Relampagos FS (CI: V-55000001)
+   Jugador 6: Jugador 6 de Relampagos FS (CI: V-66000001)
+   Jugador 7: Jugador 7 de Relampagos FS (CI: V-77000001)
+Capitan del equipo: Andres Ruiz (V-90000001)
+Correo del capitan: andres.ruiz.1775264985059.1@unimar.test
+
+Torneos encontrados: 4
+- Liga Universitaria de Futsala (Futsal) estado=active
+- Copa Unimar de Voleibol (Voleibol) estado=active
+- Liga Universitaria de Futsala (Futsal) estado=active
+- Copa Unimar de Voleibol (Voleibol) estado=active
+
+Partidos en fixture: 0
