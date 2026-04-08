@@ -178,4 +178,21 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  button:not(:disabled),
+  a[href],
+  summary,
+  [role="button"],
+  [role="menuitem"],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  select {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }

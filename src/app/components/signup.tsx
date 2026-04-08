@@ -53,12 +53,13 @@ export function Signup() {
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">Nombre</label>
+              <label className="block text-sm font-medium text-slate-700">Nombre y Apellido</label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 type="text"
                 required
+                placeholder="Nombre y Apellido"
                 className="bg-slate-100 border-slate-200"
               />
             </div>
@@ -73,6 +74,7 @@ export function Signup() {
                 pattern="[0-9]{8}"
                 maxLength={8}
                 required
+                placeholder="12345678"
                 className="bg-slate-100 border-slate-200"
               />
             </div>
@@ -96,6 +98,7 @@ export function Signup() {
                 onChange={(e) => setEmail(e.target.value)}
                 type="text"
                 required
+                placeholder="tu@correo.com"
                 className="bg-slate-100 border-slate-200"
               />
             </div>
@@ -107,6 +110,7 @@ export function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 required
+                placeholder="Crea una contraseña"
                 className="bg-slate-100 border-slate-200"
               />
             </div>

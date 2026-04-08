@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 export interface Player {
   name: string;
   ci: string;
+  userId?: string;
 }
 
 export interface TeamRegistration {
@@ -128,6 +129,8 @@ interface TournamentContextType {
   getTournamentTeams: (tournamentId: string) => TeamRegistration[];
   getTournamentMatches: (tournamentId: string) => Match[];
   getTournamentStandings: (tournamentId: string) => Standing[];
+  getUserTeams: (userId: string) => TeamRegistration[];
+  getUserTournaments: (userId: string) => Tournament[];
 }
 
 const TournamentContext = createContext<TournamentContextType | undefined>(undefined);
@@ -142,6 +145,15 @@ function generateRandomTime(): string {
 
 function sportToDbSport(sport: string): string {
   return sport.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function normalizeComparableText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function formatDateParts(isoDateTime: string) {
@@ -302,7 +314,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
       const usuario = usuariosById.get(String(jugador.id_usuario));
       if (!usuario) return acc;
       if (!acc[key]) acc[key] = [];
-      acc[key].push({ name: usuario.nombre, ci: usuario.cedula });
+      acc[key].push({ name: usuario.nombre, ci: usuario.cedula, userId: String(usuario.id) });
       return acc;
     }, {});
 
@@ -325,6 +337,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
         captainCI: captainUsuario?.cedula ?? "",
         captainPhone: "",
         captainEmail: captainUsuario?.correo ?? "",
+        captainUserId: captainUsuario ? String(captainUsuario.id) : undefined,
         players: playersByTeam[String(team.id)] ?? [],
         submittedDate: team.created_at?.split("T")[0] ?? new Date().toISOString().split("T")[0],
         status,
@@ -448,10 +461,51 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const deleteTournament = async (tournamentId: string) => {
     const tournamentNumericId = Number(tournamentId);
 
+    const { data: torneoObjetivo, error: targetError } = await supabase
+      .from("torneos")
+      .select("id, nombre, disciplina")
+      .eq("id", tournamentNumericId)
+      .single() as {
+      data: { id: number; nombre: string; disciplina: string } | null;
+      error: { message: string } | null;
+    };
+
+    if (targetError || !torneoObjetivo) {
+      throw new Error(targetError?.message ?? "No se encontró el torneo a eliminar.");
+    }
+
+    const { data: torneosCandidatos, error: duplicatesError } = await supabase
+      .from("torneos")
+      .select("id, nombre, disciplina") as {
+      data: Array<{ id: number; nombre: string; disciplina: string }> | null;
+      error: { message: string } | null;
+    };
+
+    if (duplicatesError) {
+      throw new Error(duplicatesError.message);
+    }
+
+    const objectiveName = normalizeComparableText(torneoObjetivo.nombre);
+    const objectiveSport = normalizeComparableText(torneoObjetivo.disciplina);
+
+    const tournamentIds = (torneosCandidatos ?? [])
+      .filter((item) => {
+        return (
+          normalizeComparableText(item.nombre) === objectiveName &&
+          normalizeComparableText(item.disciplina) === objectiveSport
+        );
+      })
+      .map((item) => Number(item.id))
+      .filter((id) => Number.isFinite(id));
+
+    if (!tournamentIds.includes(tournamentNumericId)) {
+      tournamentIds.push(tournamentNumericId);
+    }
+
     const { error: fixturesError } = await supabase
       .from("fixture")
       .delete()
-      .eq("id_torneo", tournamentNumericId);
+      .in("id_torneo", tournamentIds);
 
     if (fixturesError) {
       throw new Error(fixturesError.message);
@@ -460,19 +514,37 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     const { error: unlinkTeamsError } = await supabase
       .from("equipo")
       .update({ id_torneo: null })
-      .eq("id_torneo", tournamentNumericId);
+      .in("id_torneo", tournamentIds);
 
     if (unlinkTeamsError) {
       throw new Error(unlinkTeamsError.message);
     }
 
-    const { error: tournamentError } = await supabase
+    const { data: deletedTournaments, error: tournamentError } = await supabase
       .from("torneos")
       .delete()
-      .eq("id", tournamentNumericId);
+      .in("id", tournamentIds)
+      .select("id") as {
+      data: Array<{ id: number }> | null;
+      error: { message: string } | null;
+    };
 
     if (tournamentError) {
       throw new Error(tournamentError.message);
+    }
+
+    const deletedIds = new Set((deletedTournaments ?? []).map((item) => Number(item.id)));
+    if (deletedIds.size === 0) {
+      throw new Error(
+        "No se eliminó ningún torneo. Verifica políticas RLS/permisos de DELETE en la tabla torneos.",
+      );
+    }
+
+    const missingIds = tournamentIds.filter((id) => !deletedIds.has(id));
+    if (missingIds.length > 0) {
+      throw new Error(
+        `No se pudieron eliminar todos los torneos esperados (${missingIds.length} pendientes). Verifica políticas RLS/permisos.`,
+      );
     }
 
     await loadData();
@@ -725,6 +797,55 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
 
   const rejectTeam = async (teamId: string) => {
     const teamNumericId = Number(teamId);
+
+    const { data: teamPlayers, error: teamPlayersError } = await supabase
+      .from("jugadores")
+      .select("id_usuario")
+      .eq("id_equipo", teamNumericId) as {
+      data: Array<{ id_usuario: number }> | null;
+      error: { message: string } | null;
+    };
+
+    if (teamPlayersError) {
+      throw new Error(teamPlayersError.message);
+    }
+
+    const userIds = [...new Set((teamPlayers ?? []).map((player) => Number(player.id_usuario)))];
+
+    if (userIds.length > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from("usuarios")
+        .select("id, rol")
+        .in("id", userIds) as {
+        data: Array<{ id: number; rol: string }> | null;
+        error: { message: string } | null;
+      };
+
+      if (usersError) {
+        throw new Error(usersError.message);
+      }
+
+      for (const user of users ?? []) {
+        const currentRole = String(user.rol ?? "").toLowerCase();
+        const nextRole =
+          currentRole === "pendiente_capitan"
+            ? "capitan"
+            : currentRole === "pendiente_jugador"
+            ? "jugador"
+            : null;
+
+        if (!nextRole) continue;
+
+        const { error: roleUpdateError } = await supabase
+          .from("usuarios")
+          .update({ rol: nextRole })
+          .eq("id", user.id);
+
+        if (roleUpdateError) {
+          throw new Error(roleUpdateError.message);
+        }
+      }
+    }
 
     const { error: unlinkCaptainError } = await supabase
       .from("equipo")
@@ -1043,6 +1164,18 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const getTournamentMatches = (tournamentId: string) =>
     matches.filter((match) => match.tournamentId === tournamentId);
 
+  const getUserTeams = (userId: string) => {
+    return teamRegistrations.filter(
+      (team) => team.captainUserId === userId || team.players.some((player) => player.userId === userId),
+    );
+  };
+
+  const getUserTournaments = (userId: string) => {
+    const userTeamIds = new Set(getUserTeams(userId).map((team) => team.id));
+
+    return tournaments.filter((tournament) => tournament.teams.some((teamId) => userTeamIds.has(teamId)));
+  };
+
   const getTournamentStandings = (tournamentId: string): Standing[] => {
     const tournamentTeams = getTournamentTeams(tournamentId);
     const tournamentMatches = getTournamentMatches(tournamentId);
@@ -1133,6 +1266,8 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
         getTournamentTeams,
         getTournamentMatches,
         getTournamentStandings,
+        getUserTeams,
+        getUserTournaments,
       }}
     >
       {children}

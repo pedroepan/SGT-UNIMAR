@@ -10,22 +10,22 @@ const galleryItems = [
   {
     title: "Entrega de Medallas",
     caption: "Reconocimiento a los equipos destacados.",
-    image: "/JUEGOS-UNIVERSITARIOS-UNIMAR-2018-EL-VALLE-1.jpg",
+    image: "/2.jpg",
   },
   {
     title: "Apertura del Evento",
     caption: "Inicio oficial de la jornada deportiva.",
-    image: "/JUEGOS-UNIVERSITARIOS-UNIMAR-2018-EL-VALLE-1.jpg",
+    image: "/3.jpg",
   },
   {
     title: "Equipos en Acción",
     caption: "Participación de distintas disciplinas.",
-    image: "/JUEGOS-UNIVERSITARIOS-UNIMAR-2018-EL-VALLE-1.jpg",
+    image: "/1.jpg",
   },
   {
     title: "Momentos del Público",
     caption: "Apoyo y energía en cada partido.",
-    image: "/JUEGOS-UNIVERSITARIOS-UNIMAR-2018-EL-VALLE-1.jpg",
+    image: "/4.jpg",
   },
 ];
 

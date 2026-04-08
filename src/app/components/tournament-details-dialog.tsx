@@ -158,7 +158,7 @@ export function TournamentDetailsDialog({
                     id="edit-tournament-name"
                     value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
-                    placeholder="Nombre del torneo"
+                    placeholder="Ej: Torneo Apertura 2026"
                   />
                 </div>
 
@@ -168,7 +168,7 @@ export function TournamentDetailsDialog({
                     id="edit-tournament-sport"
                     value={editingSport}
                     onChange={(e) => setEditingSport(e.target.value)}
-                    placeholder="Deporte"
+                    placeholder="Ej: Fútbol Sala"
                   />
                 </div>
 

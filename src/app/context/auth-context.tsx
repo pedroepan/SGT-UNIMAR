@@ -6,6 +6,7 @@ type User = {
   name?: string;
   email: string;
   rol: 'administrador' | 'jugador';
+  avatarUrl?: string;
 };
 
 type AuthContextType = {
@@ -21,9 +22,11 @@ type AuthContextType = {
     rol: 'administrador' | 'jugador',
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfilePhoto: (avatarUrl: string | null) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const PROFILE_PHOTOS_STORAGE_KEY = 'sgt_unimar_profile_photos';
 const SESSION_STORAGE_KEY = 'sgt_unimar_session_user';
 
 type UsuarioRow = {
@@ -37,6 +40,40 @@ function normalizeRole(role: unknown): 'administrador' | 'jugador' {
   return role === 'administrador' ? 'administrador' : 'jugador';
 }
 
+function readStoredAvatar(userId: string): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+
+  try {
+    const raw = window.localStorage.getItem(PROFILE_PHOTOS_STORAGE_KEY);
+    if (!raw) return undefined;
+
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed[userId];
+  } catch (error) {
+    console.error('[auth] error loading profile photos', error);
+    return undefined;
+  }
+}
+
+function writeStoredAvatar(userId: string, avatarUrl: string | null) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const raw = window.localStorage.getItem(PROFILE_PHOTOS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+
+    if (avatarUrl) {
+      parsed[userId] = avatarUrl;
+    } else {
+      delete parsed[userId];
+    }
+
+    window.localStorage.setItem(PROFILE_PHOTOS_STORAGE_KEY, JSON.stringify(parsed));
+  } catch (error) {
+    console.error('[auth] error saving profile photos', error);
+  }
+}
+
 function mapUsuarioRow(row: UsuarioRow | null): User | null {
   if (!row) return null;
 
@@ -45,6 +82,7 @@ function mapUsuarioRow(row: UsuarioRow | null): User | null {
     name: row.nombre,
     email: row.correo,
     rol: normalizeRole(row.rol),
+    avatarUrl: readStoredAvatar(String(row.id)),
   };
 }
 
@@ -61,6 +99,7 @@ function readStoredUser(): User | null {
       name: parsed.name,
       email: parsed.email,
       rol: normalizeRole(parsed.rol),
+      avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : readStoredAvatar(String(parsed.id)),
     };
   } catch (error) {
     console.error('[auth] error loading local session', error);
@@ -184,8 +223,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateProfilePhoto = async (avatarUrl: string | null) => {
+    if (!user) {
+      throw new Error('No hay una sesión activa.');
+    }
+
+    const nextUser = {
+      ...user,
+      avatarUrl: avatarUrl ?? undefined,
+    };
+
+    writeStoredAvatar(nextUser.id, avatarUrl);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextUser));
+    }
+
+    setUser(nextUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated: !!user, isLoading, signIn, signUp, signOut, updateProfilePhoto }}
+    >
       {children}
     </AuthContext.Provider>
   );

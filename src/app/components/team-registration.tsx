@@ -51,6 +51,21 @@ type RegisteredCaptainOption = {
 
 const PLAYER_FILE_ACCEPT = ".csv,.txt,text/csv,text/plain";
 
+function normalizeSportName(value: string) {
+  const normalized = value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (normalized === "futsal" || normalized === "futbol sala" || normalized === "futbol de salon") {
+    return "futbol sala";
+  }
+
+  return normalized;
+}
+
 function isHeaderRow(row: string) {
   const normalized = row.toLowerCase();
   return normalized.includes("nombre") && (normalized.includes("cedula") || normalized.includes("cédula") || normalized.includes("ci"));
@@ -261,8 +276,25 @@ export function TeamRegistration() {
     URL.revokeObjectURL(url);
   };
 
-  const availableSports = [...new Set(tournaments.map((t) => t.sport))].sort((a, b) => a.localeCompare(b));
-  const tournamentsBySport = tournaments.filter((t) => t.sport === sport);
+  const sportsByNormalized = tournaments.reduce<Map<string, string>>((acc, tournament) => {
+    const key = normalizeSportName(tournament.sport);
+
+    if (!acc.has(key)) {
+      acc.set(key, key === "futbol sala" ? "Fútbol Sala" : tournament.sport);
+      return acc;
+    }
+
+    if (key === "futbol sala") {
+      acc.set(key, "Fútbol Sala");
+    }
+
+    return acc;
+  }, new Map());
+
+  const availableSports = [...sportsByNormalized.values()].sort((a, b) => a.localeCompare(b));
+  const tournamentsBySport = tournaments.filter(
+    (tournament) => normalizeSportName(tournament.sport) === normalizeSportName(sport),
+  );
   const selectedTournament = tournaments.find((t) => t.id === selectedTournamentId) ?? null;
 
   const canProceedStep1 = teamName.trim() !== "" && sport !== "" && selectedTournamentId !== "";
@@ -491,16 +523,37 @@ export function TeamRegistration() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="playersFile" className="cursor-pointer">
-                      Archivo CSV o TXT
-                    </Label>
-                    <Input
+                    <Label htmlFor="playersFile">Archivo CSV o TXT</Label>
+                    <input
                       id="playersFile"
                       type="file"
                       accept={PLAYER_FILE_ACCEPT}
                       onChange={handlePlayersFileUpload}
-                      className="cursor-pointer file:cursor-pointer"
+                      className="sr-only"
                     />
+                    <Button asChild type="button" variant="outline" className="cursor-pointer gap-2">
+                      <label htmlFor="playersFile">
+                        <FileUp className="h-4 w-4" />
+                        Seleccionar archivo
+                      </label>
+                    </Button>
+
+                    {playersFileName && (
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                        <span className="truncate">Archivo cargado: {playersFileName}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="cursor-pointer text-emerald-900 transition-colors hover:bg-orange-500 hover:text-white"
+                          onClick={() => {
+                            setPlayers([{ name: "", ci: "" }]);
+                            setPlayersFileName("");
+                          }}
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-600">
@@ -531,22 +584,6 @@ export function TeamRegistration() {
                     </Button>
                   </div>
 
-                  {playersFileName && (
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                      <span className="truncate">Archivo cargado: {playersFileName}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="cursor-pointer text-emerald-900 transition-colors hover:bg-orange-500 hover:text-white"
-                        onClick={() => {
-                          setPlayers([{ name: "", ci: "" }]);
-                          setPlayersFileName("");
-                        }}
-                      >
-                        Limpiar
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 

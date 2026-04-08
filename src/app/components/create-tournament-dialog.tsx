@@ -85,6 +85,7 @@ export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentD
               <Input
                 id="startDate"
                 type="date"
+                placeholder="Selecciona una fecha"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}

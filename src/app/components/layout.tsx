@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Toaster } from "./ui/sonner";
 import { useAuth } from "../context/auth-context";
 import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useTournament } from "../context/tournament-context";
+import { PlayerProfileDialog } from "./player-profile-dialog";
 
 export function Layout() {
   const location = useLocation();
@@ -119,8 +122,10 @@ export function Layout() {
 
 function AuthArea({ mobile }: { mobile?: boolean }) {
   const { user, isAuthenticated, signOut } = useAuth();
+  const { getUserTeams, getUserTournaments } = useTournament();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -150,6 +155,18 @@ function AuthArea({ mobile }: { mobile?: boolean }) {
     navigate("/login", { replace: true });
   };
 
+  const userTeams = user ? getUserTeams(user.id) : [];
+  const userTournaments = user ? getUserTournaments(user.id) : [];
+  const isPlayer = user?.rol === "jugador";
+  const canOpenProfile = isAuthenticated;
+  const initials = (user?.name ?? user?.email ?? "U")
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   if (!isAuthenticated) {
     return (
       <div className={`flex items-center gap-2 ${mobile ? "flex-col" : ""}`}>
@@ -177,7 +194,12 @@ function AuthArea({ mobile }: { mobile?: boolean }) {
         }`}
       >
         <span className="flex min-w-0 items-center gap-2 truncate">
-          <UserRound className="h-4 w-4 shrink-0" />
+          <Avatar className="h-8 w-8 border border-white/20">
+            <AvatarImage src={user?.avatarUrl} alt={user?.name ?? "Usuario"} />
+            <AvatarFallback className="bg-white/10 text-xs text-primary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <span className="truncate">{user?.name ?? user?.email}</span>
         </span>
         <ChevronDown className={`h-4 w-4 opacity-80 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
@@ -198,6 +220,27 @@ function AuthArea({ mobile }: { mobile?: boolean }) {
             </div>
           </div>
           <div className="my-1 h-px bg-slate-200" />
+          {canOpenProfile && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setProfileOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+            >
+              <UserRound className="h-4 w-4" />
+              Mi perfil
+            </button>
+          )}
+          {isPlayer && (
+            <div className="px-3 pb-2 text-xs text-slate-500">
+              <div>{userTeams.length} equipo{userTeams.length === 1 ? "" : "s"} inscrito{userTeams.length === 1 ? "" : "s"}</div>
+              <div>{userTournaments.length} torneo{userTournaments.length === 1 ? "" : "s"} en participación</div>
+            </div>
+          )}
+          {isPlayer && <div className="my-1 h-px bg-slate-200" />}
           <button
             type="button"
             role="menuitem"
@@ -212,6 +255,8 @@ function AuthArea({ mobile }: { mobile?: boolean }) {
           </button>
         </div>
       )}
+
+      {canOpenProfile && <PlayerProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />}
     </div>
   );
 }
